@@ -308,6 +308,12 @@ namespace RSTUtils
                 VisibleinScenes = visibleinScenes;
             if (stockToolbarButton != null)
                 stockToolbarButton.VisibleInScenes = VisibleinScenes;
+            if (ApplicationLauncher.Instance == null) return;
+            bool hidden = false;
+            if (ApplicationLauncher.Instance.isActiveAndEnabled && ApplicationLauncher.Instance.Contains(stockToolbarButton, out hidden))
+            {
+                ApplicationLauncher.Instance.DetermineVisibility(stockToolbarButton);
+            }
         }
 
         /// <summary>

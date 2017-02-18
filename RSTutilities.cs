@@ -942,16 +942,16 @@ namespace RSTUtils
 		{
 			double outputECSI = EC;
 			outputECSI *= 1000; //Watts (W)
-			Unit = "W";
+			Unit = "W.s";
 			if (outputECSI > 1000)
 			{
 				outputECSI /= 1000; //KiloWatts
-				Unit = "kW";
+				Unit = "kW.s";
 			}
 			if (outputECSI > 1000)
 			{
 				outputECSI /= 1000; //MegaWatts
-				Unit = "mW";
+				Unit = "MW.s";
 			}
 			return outputECSI;
 		}
