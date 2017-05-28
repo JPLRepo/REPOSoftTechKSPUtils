@@ -600,7 +600,9 @@ namespace RSTUtils
 		{
 			try
 			{
-				foreach (Animator anim in kerbal.Animators)
+                if (kerbal.Animators == null)
+                    return;
+                foreach (Animator anim in kerbal.Animators)
 				{
 					if (anim.name == kerbal.name)
 					{
@@ -1487,6 +1489,6 @@ namespace RSTUtils
 				_AssemblyName);                                           // This adds our standardised wrapper to each line
 			Debug.Log(strMessageLine);                        // And this puts it in the log
 		}
-		#endregion Logging
-	}
+        #endregion Logging        
+    }    
 }
