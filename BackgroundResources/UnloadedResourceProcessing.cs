@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace BackgroundResources
 {
@@ -19,7 +20,7 @@ namespace BackgroundResources
             public string resourceName;
             public double amount;
             public double maxAmount;
-            public ProtoPartResourceSnapshot protoPartResourceSnapshot;
+            public List<ProtoPartResourceSnapshot> protoPartResourceSnapshot;
 
             /// <summary>
             /// Create a CacheResource
@@ -30,7 +31,8 @@ namespace BackgroundResources
             /// <param name="maxamount"></param>
             public CacheResource(ProtoPartResourceSnapshot inputprotoPartResourceSnapshot, string resourcename, double inputamount, double maxamount)
             {
-                this.protoPartResourceSnapshot = inputprotoPartResourceSnapshot;
+                protoPartResourceSnapshot = new List<ProtoPartResourceSnapshot>();
+                this.protoPartResourceSnapshot.Add(inputprotoPartResourceSnapshot);
                 this.resourceName = resourcename;
                 this.amount = inputamount;
                 this.maxAmount = maxamount;
@@ -39,7 +41,7 @@ namespace BackgroundResources
         /// <summary>
         /// DictionaryValueList of ProtoVessel and Lists of their CacheResources.
         /// </summary>
-        public static DictionaryValueList<ProtoVessel, List<CacheResource>> CachedResources { get; private set; }
+        //public static DictionaryValueList<ProtoVessel, List<CacheResource>> CachedResources { get; private set; }
 
         /// <summary>
         /// Get the CacheResource for a particular Resource from the CachedResources Dictionary.
@@ -50,14 +52,13 @@ namespace BackgroundResources
         /// <returns></returns>
         public static CacheResource GetcachedVesselResource(ProtoVessel vessel, string resourceName)
         {
-            if (CachedResources == null)
+            if (UnloadedResources.InterestedVessels == null)
             {
-                CachedResources = new DictionaryValueList<ProtoVessel, List<CacheResource>>();
                 return null;
             }
-            if (CachedResources.Contains(vessel))
+            if (UnloadedResources.InterestedVessels.Contains(vessel))
             {
-                List<CacheResource> vslresources = CachedResources[vessel];
+                List<CacheResource> vslresources = UnloadedResources.InterestedVessels[vessel].CachedResources;
                 for (int i = 0; i < vslresources.Count; i++)
                 {
                     if (vslresources[i].resourceName == resourceName)
@@ -70,18 +71,14 @@ namespace BackgroundResources
         }
 
         /// <summary>
-        /// Create an entry in the CahedResources dictionary for a ProtoVessel if it doesn't exist.
+        /// Create or update a InterestedVessels entry's CachedResources for a ProtoVessel.
         /// </summary>
         /// <param name="vessel"></param>
         public static void CreatecachedVesselResources(ProtoVessel vessel)
         {
-            if (CachedResources == null)
+            if (UnloadedResources.InterestedVessels == null)
             {
-                CachedResources = new DictionaryValueList<ProtoVessel, List<CacheResource>>();
-            }
-            if (CachedResources.Contains(vessel))
-            {
-                return;
+                UnloadedResources.InterestedVessels = new DictionaryValueList<ProtoVessel, InterestedVessel>();
             }
             List<CacheResource> cacheresources = new List<CacheResource>();
             for (int i = 0; i < vessel.protoPartSnapshots.Count; i++)
@@ -97,6 +94,7 @@ namespace BackgroundResources
                         {
                             cacheresources[k].amount += protoPartResourceSnapshot.amount;
                             cacheresources[k].maxAmount += protoPartResourceSnapshot.maxAmount;
+                            cacheresources[k].protoPartResourceSnapshot.Add(protoPartResourceSnapshot);
                             found = true;
                             break;
                         }
@@ -108,7 +106,16 @@ namespace BackgroundResources
                     }
                 }
             }
-            CachedResources.Add(vessel, cacheresources);
+            if (UnloadedResources.InterestedVessels.Contains(vessel))
+            {
+                UnloadedResources.InterestedVessels[vessel].CachedResources = cacheresources;
+            }
+            else
+            {
+                InterestedVessel iVessel = new InterestedVessel(vessel.vesselRef, vessel);
+                iVessel.CachedResources = cacheresources;
+                UnloadedResources.InterestedVessels.Add(vessel, iVessel);
+            }
         }
     }
 
@@ -128,20 +135,25 @@ namespace BackgroundResources
         /// <param name="maxAmount"></param>
         public static void GetResourceTotals(ProtoVessel vessel, string resourceName, out double amount, out double maxAmount)
         {
-            amount = maxAmount = 0d;
-            if (CacheResources.CachedResources == null)
+            amount = 0d;
+            maxAmount = 0d;
+            if (UnloadedResources.InterestedVessels == null)
+            {
+                UnloadedResources.InterestedVessels = new DictionaryValueList<ProtoVessel, InterestedVessel>();
+            }
+            if (!UnloadedResources.InterestedVessels.Contains(vessel))
             {
                 CacheResources.CreatecachedVesselResources(vessel);
             }
             //If there are no cachedResources for the vessel create one.
-            if (!CacheResources.CachedResources.Contains(vessel))
+            if (UnloadedResources.InterestedVessels[vessel].CachedResources == null)
             {
                 CacheResources.CreatecachedVesselResources(vessel);
             }
             //Double check, not really necessary. Now find the resource amounts if in the vessel.
-            if (CacheResources.CachedResources.Contains(vessel))
+            if (UnloadedResources.InterestedVessels.Contains(vessel))
             {
-                List<CacheResources.CacheResource> vslresources = CacheResources.CachedResources[vessel];
+                List<CacheResources.CacheResource> vslresources = UnloadedResources.InterestedVessels[vessel].CachedResources;
                 for (int i = 0; i < vslresources.Count; i++)
                 {
                     if (vslresources[i].resourceName == resourceName)
@@ -155,25 +167,31 @@ namespace BackgroundResources
         }
 
         /// <summary>
-        /// 
+        /// Request Resource processing on a ProtoVessel.
+        /// If the ProtoVessel is not known or resources not cached for the ProtoVessel will automatically add them to the Cached data.
         /// </summary>
-        /// <param name="vessel"></param>
-        /// <param name="resourceName"></param>
-        /// <param name="amount"></param>
-        /// <param name="amountReceived"></param>
+        /// <param name="vessel">ProtoVessel reference</param>
+        /// <param name="resourceName">Name of the Resource we want to process</param>
+        /// <param name="amount">The amount of the resource we want to process</param>
+        /// <param name="amountReceived">returns the amount processed for the request in this variable</param>
+        /// <param name="pushing">default of false (which means take resource). If true will push (put resource)</param>
         public static void RequestResource(ProtoVessel vessel, string resourceName, double amount, out double amountReceived, bool pushing = false)
         {
             amountReceived = 0d;
+            if (UnloadedResources.InterestedVessels == null)
+            {
+                UnloadedResources.InterestedVessels = new DictionaryValueList<ProtoVessel, InterestedVessel>();
+            }
             //If there are no cachedResources for the vessel create one.
-            if (!CacheResources.CachedResources.Contains(vessel))
+            if (!UnloadedResources.InterestedVessels.Contains(vessel))
             {
                 CacheResources.CreatecachedVesselResources(vessel);
             }
 
             //Double check, not really necessary. Now find the resource amounts if in the vessel.
-            if (CacheResources.CachedResources.Contains(vessel))
+            if (UnloadedResources.InterestedVessels.Contains(vessel))
             {
-                List<CacheResources.CacheResource> vslresources = CacheResources.CachedResources[vessel];
+                List<CacheResources.CacheResource> vslresources = UnloadedResources.InterestedVessels[vessel].CachedResources;
                 for (int i = 0; i < vslresources.Count; i++)
                 {
                     CacheResources.CacheResource cacheResource = vslresources[i];
@@ -183,23 +201,30 @@ namespace BackgroundResources
                         {
                             if (cacheResource.amount > 0)
                             {
-                                if (cacheResource.amount <= amount)
+                                for (int j = 0; j < cacheResource.protoPartResourceSnapshot.Count; j++)
                                 {
-                                    amountReceived += cacheResource.amount;
-                                    amount -= cacheResource.amount;
-                                    cacheResource.amount = 0;
-                                    cacheResource.protoPartResourceSnapshot.amount = 0;
-                                }
-                                else //this part has more than we need.
-                                {
-                                    amountReceived += amount;
-                                    cacheResource.amount -= amount;
-                                    cacheResource.protoPartResourceSnapshot.amount -= amount;
-                                    amount = 0;
-                                }
-                                if (amount == 0)  //Did we get all we wanted? if so return.
-                                {
-                                    return;
+                                    ProtoPartResourceSnapshot partResourceSnapshot = cacheResource.protoPartResourceSnapshot[j];
+                                    if (partResourceSnapshot.amount > 0)
+                                    {
+                                        if (partResourceSnapshot.amount <= amount) //Not enough but take what it has
+                                        {
+                                            amountReceived += partResourceSnapshot.amount;
+                                            amount -= partResourceSnapshot.amount;
+                                            cacheResource.amount -= partResourceSnapshot.amount;
+                                            partResourceSnapshot.amount = 0;
+                                        }
+                                        else //this part has more than we need.
+                                        {
+                                            amountReceived += amount;
+                                            cacheResource.amount -= amount;
+                                            partResourceSnapshot.amount -= amount;
+                                            amount = 0;
+                                        }
+                                    }
+                                    if (amount <= 0) //Did we get all we wanted? if so return.
+                                    {
+                                        return;
+                                    }
                                 }
                             }
                         }
@@ -209,28 +234,37 @@ namespace BackgroundResources
                             double spaceAvailable = cacheResource.maxAmount - cacheResource.amount;
                             if (spaceAvailable > 0) //If we have space put some in.
                             {
-                                if (amount >= spaceAvailable) //If we can't fit it all in this part. Put what we can.
+                                for (int j = 0; j < cacheResource.protoPartResourceSnapshot.Count; j++)
                                 {
-                                    cacheResource.amount = cacheResource.maxAmount;
-                                    cacheResource.protoPartResourceSnapshot.amount = cacheResource.maxAmount;
-                                    amount -= spaceAvailable;
-                                    amountReceived += spaceAvailable;
-                                }
-                                else  //If we can fit it all in this part, put it in.
-                                {
-                                    cacheResource.amount += amount;
-                                    cacheResource.protoPartResourceSnapshot.amount += amount;
-                                    amountReceived += amount;
-                                    amount = 0;
-                                }
-                                if (amount == 0)  //Did we get all we wanted? if so return.
-                                {
-                                    return;
+                                    ProtoPartResourceSnapshot partResourceSnapshot = cacheResource.protoPartResourceSnapshot[j];
+                                    double partspaceAvailable = partResourceSnapshot.maxAmount - partResourceSnapshot.amount;
+                                    if (partspaceAvailable > 0)
+                                    {
+                                        if (amount >= partspaceAvailable
+                                        ) //If we can't fit it all in this part. Put what we can.
+                                        {
+                                            partResourceSnapshot.amount = partResourceSnapshot.maxAmount;
+                                            cacheResource.amount += partspaceAvailable;
+                                            amount -= partspaceAvailable;
+                                            amountReceived += partspaceAvailable;
+                                        }
+                                        else //If we can fit it all in this part, put it in.
+                                        {
+                                            partResourceSnapshot.amount += amount;
+                                            cacheResource.amount += amount;
+                                            amountReceived += amount;
+                                            amount = 0;
+                                        }
+                                        if (amount <= 0) //Did we get all we wanted? if so return.
+                                        {
+                                            return;
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                }
+                } //End For loop al vessel resources.
             }
         }
     }
