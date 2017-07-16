@@ -41,6 +41,7 @@ namespace BackgroundResources
         public ProtoVessel protovessel;
         public List<SnapshotModuleHandler> ModuleHandlers;
         public List<CacheResources.CacheResource> CachedResources;
+        public double TimeLastRefresh;
         //public List<ProtoPartModuleSnapshot> PartModules;
         
 
@@ -48,6 +49,7 @@ namespace BackgroundResources
         {
             this.vessel = vessel;
             this.protovessel = protovessel;
+            this.TimeLastRefresh = Time.time;
             ModuleHandlers = new List<SnapshotModuleHandler>();
             CachedResources = new List<CacheResources.CacheResource>();
             UpdateModules();
@@ -80,6 +82,22 @@ namespace BackgroundResources
                         }
                     }
                 }
+            }
+        }
+
+        public void ClearCaches()
+        {
+            for (int crI = 0; crI < CachedResources.Count; crI++)
+            {
+                CachedResources[crI].timeWarpOverflow.Clear();
+            }
+        }
+
+        public void UpdateCaches()
+        {
+            for (int crI = 0; crI < CachedResources.Count; crI++)
+            {
+                CachedResources[crI].timeWarpOverflow.Update();
             }
         }
     }

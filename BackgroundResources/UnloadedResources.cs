@@ -76,6 +76,7 @@ namespace BackgroundResources
                     if (vslenumerator.Current.Value.ModuleHandlers.Count > 0)
                     {
                         ProcessInterestedModules(vslenumerator.Current.Value);
+                        UpdateResourceCacheOverflows(vslenumerator.Current.Value);
                     }
                 }
             }
@@ -130,9 +131,29 @@ namespace BackgroundResources
         /// <param name="vessel"></param>
         private void ProcessInterestedModules(InterestedVessel vessel)
         {
+            if (vessel.vessel.loaded) //If vessel is loaded don't process resources.
+            {
+                return;
+            }
             for (int i = 0; i < vessel.ModuleHandlers.Count; i++)
             {
                 vessel.ModuleHandlers[i].ProcessHandler();       
+            }
+        }
+
+        /// <summary>
+        /// Updates the Vessel ResourceCache Overflow
+        /// </summary>
+        /// <param name="vessel"></param>
+        private void UpdateResourceCacheOverflows(InterestedVessel vessel)
+        {
+            if (vessel.vessel.loaded)
+            {
+                vessel.ClearCaches();
+            }
+            else
+            {
+                vessel.UpdateCaches();
             }
         }
     }

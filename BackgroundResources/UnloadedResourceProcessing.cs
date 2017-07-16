@@ -1,7 +1,11 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using KSPAchievements;
+using Smooth.Compare.Comparers;
+using Smooth.Slinq.Test;
 using UnityEngine;
 
 namespace BackgroundResources
@@ -12,6 +16,108 @@ namespace BackgroundResources
     /// </summary>
     public static class CacheResources
     {
+        public static int timeWarpStep = 4;
+
+        public class CacheTimeWarpBuffer
+        {
+            private class CacheTimeWarpEntry
+            {
+                public double time;
+                public double amount;
+
+                public CacheTimeWarpEntry(double time, double amount)
+                {
+                    this.time = time;
+                    this.amount = amount;
+                }
+            }
+            private Queue<CacheTimeWarpEntry> bufferList;
+            public double totalAmount;
+
+            /// <summary>
+            /// Create a new CacheTimeWarpBuffer
+            /// </summary>
+            public CacheTimeWarpBuffer()
+            {
+                bufferList = new Queue<CacheTimeWarpEntry>();
+                totalAmount = 0;
+            }
+
+            /// <summary>
+            /// Updates the Buffer. Call Every FixedUpdate. Checks if Timewarp rate less than 3, throw away the buffer entries.
+            /// Will remove any buffer entries older than fixedDeltaTime * 2 (two ticks).
+            /// </summary>
+            public void Update()
+            {
+                if (TimeWarp.CurrentRateIndex < timeWarpStep)  //If timewarp rate is less than three throw away the queue and we are done.
+                {
+                    Clear();
+                    return;
+                }
+                //Otherwise throw away anything more than 2 ticks ago from the queue.
+                double oldTime = Planetarium.GetUniversalTime() - (TimeWarp.fixedDeltaTime * 2);
+                int dequeueCount = 0;
+                foreach(CacheTimeWarpEntry entry in bufferList)
+                {
+                    if (entry.time < oldTime)
+                    {
+                        dequeueCount++;
+                    }
+                }
+                for (int dqI = 0; dqI < dequeueCount; dqI++)
+                {
+                    CacheTimeWarpEntry entry = bufferList.Dequeue();
+                    totalAmount -= entry.amount;
+                }
+            }
+
+            /// <summary>
+            /// Clear the Buffer
+            /// </summary>
+            public void Clear()
+            {
+                bufferList.Clear();
+                totalAmount = 0;
+            }
+
+            /// <summary>
+            /// Add to the TimeWarp Buffer
+            /// </summary>
+            /// <param name="amount">The amount to add</param>
+            public void Add(double amount)
+            {
+                double key = Planetarium.GetUniversalTime();
+                CacheTimeWarpEntry newEntry = new CacheTimeWarpEntry(key, amount);
+                bufferList.Enqueue(newEntry);
+                totalAmount += amount;
+            }
+
+            /// <summary>
+            /// Take from the TimeWarp Buffer.
+            /// </summary>
+            /// <param name="amount">The amount we want</param>
+            /// <param name="amountTaken">out parm containing the amount taken</param>
+            /// <returns>true if we got what we wanted, otherwise false</returns>
+            public bool Take(double amount, out double amountTaken)
+            {
+                amountTaken = 0;
+                while (amount > 0 && bufferList.Count > 0) //We still need amount and still on the Queue
+                {
+                    CacheTimeWarpEntry entry = bufferList.Dequeue(); //Get last entry
+                    totalAmount -= entry.amount; //Decrease total amount
+                    if (entry.amount > amount) //If we got more than we need just throw away the rest
+                    {
+                        entry.amount = amount;
+                    }
+                    amountTaken += entry.amount; //add to the amount we are giving.
+                    amount -= entry.amount; //Decrease the amount we still need.
+                }
+                if (amount <= 0)
+                    return true;
+                return false;
+            }
+        }
+        
         /// <summary>
         /// Information about a Resource and reference to it's ProtoPartResourceSnapshot.
         /// </summary>
@@ -20,6 +126,7 @@ namespace BackgroundResources
             public string resourceName;
             public double amount;
             public double maxAmount;
+            public CacheTimeWarpBuffer timeWarpOverflow;
             public List<ProtoPartResourceSnapshot> protoPartResourceSnapshot;
 
             /// <summary>
@@ -36,13 +143,10 @@ namespace BackgroundResources
                 this.resourceName = resourcename;
                 this.amount = inputamount;
                 this.maxAmount = maxamount;
+                this.timeWarpOverflow = new CacheTimeWarpBuffer();
             }
         }
-        /// <summary>
-        /// DictionaryValueList of ProtoVessel and Lists of their CacheResources.
-        /// </summary>
-        //public static DictionaryValueList<ProtoVessel, List<CacheResource>> CachedResources { get; private set; }
-
+        
         /// <summary>
         /// Get the CacheResource for a particular Resource from the CachedResources Dictionary.
         /// If it does not exist it will return null.
@@ -115,6 +219,7 @@ namespace BackgroundResources
                 InterestedVessel iVessel = new InterestedVessel(vessel.vesselRef, vessel);
                 iVessel.CachedResources = cacheresources;
                 UnloadedResources.InterestedVessels.Add(vessel, iVessel);
+                UnloadedResources.InterestedVessels[vessel].TimeLastRefresh = Time.time;
             }
         }
     }
@@ -150,6 +255,12 @@ namespace BackgroundResources
             {
                 CacheResources.CreatecachedVesselResources(vessel);
             }
+            //If BackgroundProcessing is installed and our cache hasn't been refreshed in 3 mins. Then refresh it.
+            if (UnloadedResources.Instance.BackgroundProcessingInstalled &&
+                (Time.time - UnloadedResources.InterestedVessels[vessel].TimeLastRefresh > 180))
+            {
+                CacheResources.CreatecachedVesselResources(vessel);
+            }
             //Double check, not really necessary. Now find the resource amounts if in the vessel.
             if (UnloadedResources.InterestedVessels.Contains(vessel))
             {
@@ -159,6 +270,7 @@ namespace BackgroundResources
                     if (vslresources[i].resourceName == resourceName)
                     {
                         amount = vslresources[i].amount;
+                        //amount += vslresources[i].timeWarpOverflow;
                         maxAmount = vslresources[i].maxAmount;
                         return;
                     }
@@ -199,11 +311,23 @@ namespace BackgroundResources
                     {
                         if (!pushing)  //We are taking resource
                         {
-                            if (cacheResource.amount > 0)
+                            if (cacheResource.amount > 0 || cacheResource.timeWarpOverflow.totalAmount > 0)
                             {
                                 for (int j = 0; j < cacheResource.protoPartResourceSnapshot.Count; j++)
                                 {
                                     ProtoPartResourceSnapshot partResourceSnapshot = cacheResource.protoPartResourceSnapshot[j];
+                                    if (cacheResource.timeWarpOverflow.totalAmount > 0 && TimeWarp.fetch != null && TimeWarp.CurrentRateIndex > CacheResources.timeWarpStep) //If we have timewarp Overflow check that first.
+                                    {
+                                        double amountTaken = 0;
+                                        cacheResource.timeWarpOverflow.Take(amount, out amountTaken);
+                                        amountReceived += amountTaken;
+                                        amount -= amountTaken;
+                                        if (amount <= 0) //Did we get all we need already? If so return.
+                                        {
+                                            return;
+                                        }
+                                    }
+                                    //TimewarpOverflow didn't have enough or didn't have what we need. so now the partResrouceSnapshot
                                     if (partResourceSnapshot.amount > 0)
                                     {
                                         if (partResourceSnapshot.amount <= amount) //Not enough but take what it has
@@ -262,9 +386,19 @@ namespace BackgroundResources
                                     }
                                 }
                             }
+                            //If we get here we had more than can fit in the parts... But if TimeWarp is too high, we put it in the overflow.
+                            if (TimeWarp.fetch != null && amount > 0)
+                            {
+                                if (TimeWarp.CurrentRateIndex > CacheResources.timeWarpStep) //But only if timewarp rate is high enough.
+                                {
+                                    cacheResource.timeWarpOverflow.Add(amount);
+                                    amountReceived += amount;
+                                    amount = 0;
+                                }
+                            }
                         }
                     }
-                } //End For loop al vessel resources.
+                } //End For loop all vessel resources.
             }
         }
     }
