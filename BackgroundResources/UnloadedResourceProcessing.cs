@@ -49,13 +49,13 @@ namespace BackgroundResources
             /// </summary>
             public void Update()
             {
-                if (TimeWarp.CurrentRateIndex < timeWarpStep)  //If timewarp rate is less than three throw away the queue and we are done.
-                {
-                    Clear();
-                    return;
-                }
-                //Otherwise throw away anything more than 2 ticks ago from the queue.
-                double oldTime = Planetarium.GetUniversalTime() - (TimeWarp.fixedDeltaTime * 2);
+                //if (TimeWarp.CurrentRateIndex < timeWarpStep)  //If timewarp rate is less than three throw away the queue and we are done.
+                //{
+                //    Clear();
+                //    return;
+                //}
+                //Otherwise throw away anything more than 3 ticks ago from the queue.
+                double oldTime = Planetarium.GetUniversalTime() - (TimeWarp.fixedDeltaTime * 3);
                 int dequeueCount = 0;
                 foreach(CacheTimeWarpEntry entry in bufferList)
                 {
