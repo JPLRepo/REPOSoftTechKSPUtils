@@ -1356,14 +1356,13 @@ namespace RSTUtils
 		{
 			returnStatus = ISRUStatus.Inactive;
 			if (!tmpRegRc.IsActivated) return ISRUStatus.Inactive; //If it's not Activated, it must be inactive.
-			// Otherwise it's Activated, but is it really working and using EC? Get it's real status.
-			if (tmpRegRc.status.ToLower().Contains("inactive")) returnStatus = ISRUStatus.Inactive; //Status is inactive, it's inactive.. Not sure how but sometimes this remains on load even when it's inactive? Hence the test above.
-			if (tmpRegRc.status.ToLower().Contains("missing")) returnStatus = ISRUStatus.MissingResource; //Missing an Input resource makes this appear in the status.
-			if (tmpRegRc.status.ToLower().Contains("full")) returnStatus = ISRUStatus.OutputFull; //If the vessel has nowhere to store the output, full appears in the status.
-			if (tmpRegRc.status.ToLower().Contains("output cap")) returnStatus = ISRUStatus.OutputFull; //If the vessel has nowhere to store the output, output cap: x% appears in the status.
-			if (tmpRegRc.status.ToLower().Contains("load")) returnStatus = ISRUStatus.Active; //a Percentage Load indicates it is active and actually processing... except when it gets stuck on this.
-			if (tmpRegRc.status.ToLower().Contains("zero efficiency")) returnStatus = ISRUStatus.ZeroEfficiency; //Efficiency has reduced to zero (heat factor?).
-			if (tmpRegRc.status.ToLower().Contains("operational")) returnStatus = ISRUStatus.Active; //a new status with KSP 1.1.3.
+            // Otherwise it's Activated, but is it really working and using EC? Get it's real status.
+            if (tmpRegRc.status == null)
+            {
+                return ISRUStatus.Inactive;
+            }
+            if (tmpRegRc.status.Contains(KSP.Localization.Localizer.Format("#autoLOC_257237"))) return ISRUStatus.Active; //Operational.
+			if (tmpRegRc.status.Contains("%")) return ISRUStatus.Active;			
 			return returnStatus;
 		}
 

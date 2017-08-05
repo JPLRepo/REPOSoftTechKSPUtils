@@ -43,7 +43,7 @@ namespace BackgroundResources
         public List<CacheResources.CacheResource> CachedResources;
         public double TimeLastRefresh;
         //public List<ProtoPartModuleSnapshot> PartModules;
-        
+        public const string configNodeName = "INTERESTEDVESSEL";
 
         public InterestedVessel(Vessel vessel, ProtoVessel protovessel)
         {
@@ -53,6 +53,50 @@ namespace BackgroundResources
             ModuleHandlers = new List<SnapshotModuleHandler>();
             CachedResources = new List<CacheResources.CacheResource>();
             UpdateModules();
+        }
+
+        public ConfigNode Save(ConfigNode Savenode)
+        {
+            ConfigNode node = Savenode.AddNode(configNodeName);
+            node.AddValue("VesselGuid", vessel.id);
+            node.AddValue("timeLastRefresh", TimeLastRefresh);
+            for (int crI = 0; crI < CachedResources.Count; crI++)
+            {
+                CachedResources[crI].Save(node);
+            }
+            return node;
+        }
+
+        public static InterestedVessel Load(ConfigNode node)
+        {
+            if (node.HasValue("VesselGuid"))
+            {
+                Guid id = new Guid(node.GetValue("VesselGuid"));
+                if (FlightGlobals.fetch)
+                {
+                    Vessel vsl = FlightGlobals.FindVessel(id);
+                    if (vsl != null)
+                    {
+                        if (vsl.protoVessel != null)
+                        {
+                            ProtoVessel protovsl = vsl.protoVessel;
+                            InterestedVessel interestedVessel = new InterestedVessel(vsl, protovsl);
+                            node.TryGetValue("timeLastRefresh", ref interestedVessel.TimeLastRefresh);
+                            ConfigNode[] cacheResourcesNodes = node.GetNodes("CACHERESOURCE");
+                            for (int crI = 0; crI < cacheResourcesNodes.Length; crI++)
+                            {
+                                CacheResources.CacheResource cacheResource = CacheResources.CacheResource.Load(cacheResourcesNodes[crI], protovsl);
+                                if (cacheResource != null)
+                                {
+                                    interestedVessel.CachedResources.Add(cacheResource);
+                                }
+                            }
+                            return interestedVessel;
+                        }
+                    }
+                }                
+            }
+            return null;
         }
 
         public void UpdateModules()

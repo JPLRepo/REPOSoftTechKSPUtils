@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 using RSTUtils;
 using UnityEngine;
+using System;
 
 namespace BackgroundResources
 {
-    [KSPAddon(KSPAddon.Startup.MainMenu, true)]
-    public class UnloadedResources : MonoBehaviour
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.SPACECENTER, GameScenes.FLIGHT, GameScenes.TRACKSTATION)]
+    public class UnloadedResources :ScenarioModule
     {
         public static UnloadedResources Instance;
         public static DictionaryValueList<ProtoVessel, InterestedVessel> InterestedVessels;
@@ -13,22 +14,27 @@ namespace BackgroundResources
         internal bool BackgroundProcessingInstalled = false;
         private bool loggedBackgroundProcessing = false;
         private bool gamePaused = false;
+        public const string configNodeName = "BACKGROUNDRESOURCES";
 
         /// <summary>
         /// Awake method will setup the InterestingModules that this mod will generate ElectricCharge for.
         /// Checks if the BackgroundProcessing Mod is installed and if it is this mod will not generate ElectricCharge.
         /// </summary>
-        public void Awake()
+        public UnloadedResources()
         {
             Instance = this;
-            DontDestroyOnLoad(this);
+        }
+
+        public override void OnAwake()
+        {
+            Utilities.Log("OnAwake in " + HighLogic.LoadedScene);
+            base.OnAwake();
             InterestedVessels = new DictionaryValueList<ProtoVessel, InterestedVessel>();
             InterestingModules = new List<string>();
             InterestingModules.Add("ModuleDeployableSolarPanel");
             InterestingModules.Add("ModuleGenerator");
             InterestingModules.Add("KopernicusSolarPanel");
-            BackgroundProcessingInstalled = RSTUtils.Utilities.IsModInstalled("BackgroundProcessing");
-            GameEvents.onGameSceneLoadRequested.Add(onGameSceneLoad);
+            BackgroundProcessingInstalled = Utilities.IsModInstalled("BackgroundProcessing");           
             GameEvents.onGamePause.Add(onGamePause);
             GameEvents.onGameUnpause.Add(onGameUnPause);
             if (BackgroundProcessingInstalled)
@@ -43,6 +49,7 @@ namespace BackgroundResources
             {
                 onGamePause();
             }
+            Utilities.Log("BackgroundProcessed Awake");
         }
 
         private void OnDestroy()
@@ -82,9 +89,45 @@ namespace BackgroundResources
             }
         }
 
-        private void onGameSceneLoad(GameScenes scene)
+        public override void OnLoad(ConfigNode gameNode)
         {
-            InterestedVessels.Clear();
+            base.OnLoad(gameNode);
+            if (gameNode.HasNode(configNodeName))
+            {
+                ConfigNode settingsNode = gameNode.GetNode(configNodeName);
+                InterestedVessels.Clear();
+                var vesselNodes = settingsNode.GetNodes(InterestedVessel.configNodeName);
+                foreach (ConfigNode vesselNode in vesselNodes)
+                {
+                    InterestedVessel interestedVessel = InterestedVessel.Load(vesselNode);
+                    if (interestedVessel != null)
+                    {
+                        ProtoVessel key = interestedVessel.protovessel;
+                        InterestedVessels.Add(key, interestedVessel);
+                    }                    
+                }
+            }
+            Utilities.Log("OnLoad: ", gameNode);
+        }
+
+        public override void OnSave(ConfigNode gameNode)
+        {
+            base.OnSave(gameNode);
+            ConfigNode settingsNode;
+            if (gameNode.HasNode(configNodeName))
+            {
+                settingsNode = gameNode.GetNode(configNodeName);
+            }
+            else
+            {
+                settingsNode = gameNode.AddNode(configNodeName);
+            }
+            Dictionary<ProtoVessel, InterestedVessel>.Enumerator vslenumerator = InterestedVessels.GetDictEnumerator();
+            while (vslenumerator.MoveNext())
+            {
+                ConfigNode vesselNode = vslenumerator.Current.Value.Save(settingsNode);                
+            }
+            Utilities.Log("OnSave: ", gameNode);
         }
 
         private void onGamePause()

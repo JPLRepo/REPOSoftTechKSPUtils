@@ -42,7 +42,7 @@ namespace BackgroundResources
                 bufferList = new Queue<CacheTimeWarpEntry>();
                 totalAmount = 0;
             }
-
+                       
             /// <summary>
             /// Updates the Buffer. Call Every FixedUpdate. Checks if Timewarp rate less than 3, throw away the buffer entries.
             /// Will remove any buffer entries older than fixedDeltaTime * 2 (two ticks).
@@ -127,7 +127,7 @@ namespace BackgroundResources
             public double amount;
             public double maxAmount;
             public CacheTimeWarpBuffer timeWarpOverflow;
-            public List<ProtoPartResourceSnapshot> protoPartResourceSnapshot;
+            public DictionaryValueList<string, ProtoPartResourceSnapshot> protoPartResourceSnapshot;
 
             /// <summary>
             /// Create a CacheResource
@@ -136,17 +136,144 @@ namespace BackgroundResources
             /// <param name="resourcename"></param>
             /// <param name="inputamount"></param>
             /// <param name="maxamount"></param>
-            public CacheResource(ProtoPartResourceSnapshot inputprotoPartResourceSnapshot, string resourcename, double inputamount, double maxamount)
+            public CacheResource(uint craftId, ProtoPartResourceSnapshot inputprotoPartResourceSnapshot, string resourcename, double inputamount, double maxamount)
             {
-                protoPartResourceSnapshot = new List<ProtoPartResourceSnapshot>();
-                this.protoPartResourceSnapshot.Add(inputprotoPartResourceSnapshot);
+                protoPartResourceSnapshot = new DictionaryValueList<string, ProtoPartResourceSnapshot>();
+                this.protoPartResourceSnapshot.Add(GetKey(craftId, inputprotoPartResourceSnapshot), inputprotoPartResourceSnapshot);
                 this.resourceName = resourcename;
                 this.amount = inputamount;
                 this.maxAmount = maxamount;
                 this.timeWarpOverflow = new CacheTimeWarpBuffer();
             }
+
+            public static string GetKey(ProtoPartSnapshot partSnapshot, ProtoPartResourceSnapshot resourceSnapshot)
+            {
+                return partSnapshot.craftID + "," + resourceSnapshot.resourceName;
+            }
+
+            public static string GetKey(string craftID, ProtoPartResourceSnapshot resourceSnapshot)
+            {
+                return craftID + "," + resourceSnapshot.resourceName;
+            }
+
+            public static string GetKey(string craftID, string resourceName)
+            {
+                return craftID + "," + resourceName;
+            }
+
+            public static string GetKey(uint craftID, string resourceName)
+            {
+                return craftID + "," + resourceName;
+            }
+
+            public static string GetKey(uint craftID, ProtoPartResourceSnapshot resourceSnapshot)
+            {
+                return craftID + "," + resourceSnapshot.resourceName;
+            }
+
+            public static uint RetrieveKey(string keyField, out string resourceName)
+            {
+                uint returnKey = 0;
+                resourceName = "";
+                string[] values = keyField.Split(',');
+                if (values.Length == 2)
+                {
+                    returnKey = uint.Parse(values[0]);
+                    resourceName = values[1];
+                }
+                return returnKey;
+            }
+
+            public ConfigNode Save(ConfigNode Savenode)
+            {
+                ConfigNode node = Savenode.AddNode("CACHERESOURCE");
+                node.AddValue("resourceName", resourceName);
+                node.AddValue("amount", amount);
+                node.AddValue("maxAmount", maxAmount);
+                Dictionary <string, ProtoPartResourceSnapshot>.Enumerator ppRSenumerator = protoPartResourceSnapshot.GetDictEnumerator();
+                while (ppRSenumerator.MoveNext())                    
+                {
+                    ConfigNode resourceNode = node.AddNode("RESOURCE");
+                    resourceNode.AddValue("craftID", ppRSenumerator.Current.Key);
+                    ppRSenumerator.Current.Value.Save(resourceNode);                    
+                }
+                return node;
+            }
+
+            public static CacheResource Load(ConfigNode node, ProtoVessel protoVessel)
+            {
+                string resName = "";
+                node.TryGetValue("resourceName", ref resName);
+                double amt = 0;
+                double maxamt = 0;
+                node.TryGetValue("amount", ref amt);
+                node.TryGetValue("maxAmount", ref maxamt);
+                DictionaryValueList<string, ProtoPartResourceSnapshot> protoresSnapshots = new DictionaryValueList<string, ProtoPartResourceSnapshot>();
+                ConfigNode[] protoresourcesnapNodes = node.GetNodes("RESOURCE");
+                for (int rsI = 0; rsI < protoresourcesnapNodes.Length; rsI++)
+                {
+                    string keyField = protoresourcesnapNodes[rsI].GetValue("craftID");                    
+                    ProtoPartResourceSnapshot protoresSnap = new ProtoPartResourceSnapshot(protoresourcesnapNodes[rsI]);
+                    ProtoPartResourceSnapshot protoVesselResSnap = getMatchingResourceSnapShot(keyField, protoresSnap, protoVessel);
+                    if (protoVesselResSnap != null)
+                    {
+                        protoresSnapshots.Add(keyField, protoVesselResSnap);
+                    }
+                }
+                if (protoresSnapshots.Count > 0)
+                {
+                    Dictionary<string, ProtoPartResourceSnapshot>.Enumerator ppRSenumerator = protoresSnapshots.GetDictEnumerator();
+                    ppRSenumerator.MoveNext();
+                    string resourceKey = "";
+                    uint craftID = CacheResource.RetrieveKey(ppRSenumerator.Current.Key, out resourceKey);
+                    CacheResource newCacheResource = new CacheResource(craftID, ppRSenumerator.Current.Value, resName, amt, maxamt);
+                    while (ppRSenumerator.MoveNext())                    
+                    {
+                        newCacheResource.protoPartResourceSnapshot.Add(ppRSenumerator.Current.Key, ppRSenumerator.Current.Value);
+                    }
+                    return newCacheResource;
+                }                
+                return null;
+            }
         }
-        
+
+        public static ProtoPartResourceSnapshot getMatchingResourceSnapShot(string keyField, ProtoPartResourceSnapshot protoresSnap, ProtoVessel protoVessel)
+        {
+            ProtoPartResourceSnapshot returnSnapshot = null;
+            string resourceKey = "";
+            uint craftID = CacheResource.RetrieveKey(keyField, out resourceKey);
+
+            for (int pvPartI = 0; pvPartI < protoVessel.protoPartSnapshots.Count; pvPartI++)
+            {
+                if (protoVessel.protoPartSnapshots[pvPartI].craftID == craftID)
+                {
+                    bool found = false;
+                    for (int ppSnapI = 0; ppSnapI < protoVessel.protoPartSnapshots[pvPartI].resources.Count; ppSnapI++)
+                    {
+                        if (protoVessel.protoPartSnapshots[pvPartI].resources[ppSnapI].resourceName == resourceKey)
+                        {
+                            //Compare the loaded values to the protoVessel snapshot.
+                            //If loaded is more then DO WE? update the protoVessel. Let's just report it for now.
+                            if (protoVessel.protoPartSnapshots[pvPartI].resources[ppSnapI].amount != protoresSnap.amount)
+                            {
+                                RSTUtils.Utilities.Log("ProtoVessel resource amounts differ");
+                            }
+                            if (protoVessel.protoPartSnapshots[pvPartI].resources[ppSnapI].maxAmount != protoresSnap.maxAmount)
+                            {
+                                RSTUtils.Utilities.Log("ProtoVessel resource max amounts differ");
+                            }
+                            returnSnapshot = protoVessel.protoPartSnapshots[pvPartI].resources[ppSnapI];
+                            break;
+                        }
+                    }
+                    if (found)
+                        break;
+                }
+            }
+
+            return returnSnapshot;
+        }
+
         /// <summary>
         /// Get the CacheResource for a particular Resource from the CachedResources Dictionary.
         /// If it does not exist it will return null.
@@ -198,14 +325,14 @@ namespace BackgroundResources
                         {
                             cacheresources[k].amount += protoPartResourceSnapshot.amount;
                             cacheresources[k].maxAmount += protoPartResourceSnapshot.maxAmount;
-                            cacheresources[k].protoPartResourceSnapshot.Add(protoPartResourceSnapshot);
+                            cacheresources[k].protoPartResourceSnapshot.Add(CacheResource.GetKey(protoPartSnapshot, protoPartResourceSnapshot),  protoPartResourceSnapshot);
                             found = true;
                             break;
                         }
                     }
                     if (!found)
                     {
-                        CacheResource newresource = new CacheResource(protoPartResourceSnapshot, protoPartResourceSnapshot.resourceName, protoPartResourceSnapshot.amount, protoPartResourceSnapshot.maxAmount);
+                        CacheResource newresource = new CacheResource(protoPartSnapshot.craftID, protoPartResourceSnapshot, protoPartResourceSnapshot.resourceName, protoPartResourceSnapshot.amount, protoPartResourceSnapshot.maxAmount);
                         cacheresources.Add(newresource);
                     }
                 }
@@ -313,9 +440,10 @@ namespace BackgroundResources
                         {
                             if (cacheResource.amount > 0 || cacheResource.timeWarpOverflow.totalAmount > 0)
                             {
-                                for (int j = 0; j < cacheResource.protoPartResourceSnapshot.Count; j++)
-                                {
-                                    ProtoPartResourceSnapshot partResourceSnapshot = cacheResource.protoPartResourceSnapshot[j];
+                                Dictionary<string, ProtoPartResourceSnapshot>.Enumerator ppRSenumerator = cacheResource.protoPartResourceSnapshot.GetDictEnumerator();
+                                while (ppRSenumerator.MoveNext())
+                                {                                    
+                                    ProtoPartResourceSnapshot partResourceSnapshot = ppRSenumerator.Current.Value;
                                     if (cacheResource.timeWarpOverflow.totalAmount > 0 && TimeWarp.fetch != null && TimeWarp.CurrentRateIndex > CacheResources.timeWarpStep) //If we have timewarp Overflow check that first.
                                     {
                                         double amountTaken = 0;
@@ -358,9 +486,10 @@ namespace BackgroundResources
                             double spaceAvailable = cacheResource.maxAmount - cacheResource.amount;
                             if (spaceAvailable > 0) //If we have space put some in.
                             {
-                                for (int j = 0; j < cacheResource.protoPartResourceSnapshot.Count; j++)
+                                Dictionary<string, ProtoPartResourceSnapshot>.Enumerator ppRSenumerator = cacheResource.protoPartResourceSnapshot.GetDictEnumerator();
+                                while (ppRSenumerator.MoveNext())
                                 {
-                                    ProtoPartResourceSnapshot partResourceSnapshot = cacheResource.protoPartResourceSnapshot[j];
+                                    ProtoPartResourceSnapshot partResourceSnapshot = ppRSenumerator.Current.Value;                                    
                                     double partspaceAvailable = partResourceSnapshot.maxAmount - partResourceSnapshot.amount;
                                     if (partspaceAvailable > 0)
                                     {
