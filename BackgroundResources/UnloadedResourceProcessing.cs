@@ -32,6 +32,9 @@ namespace BackgroundResources
                 }
             }
             private Queue<CacheTimeWarpEntry> bufferList;
+            /// <summary>
+            /// The total amount of cached resource available
+            /// </summary>
             public double totalAmount;
 
             /// <summary>
@@ -396,10 +399,13 @@ namespace BackgroundResources
                 {
                     if (vslresources[i].resourceName == resourceName)
                     {
-                        amount = vslresources[i].amount;
-                        //amount += vslresources[i].timeWarpOverflow;
+                        amount = vslresources[i].amount;                        
                         maxAmount = vslresources[i].maxAmount;
-                        return;
+                        if (vslresources[i].timeWarpOverflow.totalAmount > 0 && TimeWarp.fetch != null && TimeWarp.CurrentRateIndex > CacheResources.timeWarpStep) //If we have timewarp Overflow check that first.
+                        {
+                            amount += vslresources[i].timeWarpOverflow.totalAmount;  
+                            maxAmount += vslresources[i].timeWarpOverflow.totalAmount;
+                        }
                     }
                 }
             }
@@ -440,22 +446,23 @@ namespace BackgroundResources
                         {
                             if (cacheResource.amount > 0 || cacheResource.timeWarpOverflow.totalAmount > 0)
                             {
+                                if (cacheResource.timeWarpOverflow.totalAmount > 0 && TimeWarp.fetch != null && TimeWarp.CurrentRateIndex > CacheResources.timeWarpStep) //If we have timewarp Overflow check that first.
+                                {
+                                    double amountTaken = 0;
+                                    cacheResource.timeWarpOverflow.Take(amount, out amountTaken);
+                                    amountReceived += amountTaken;
+                                    amount -= amountTaken;
+                                    if (amount <= 0) //Did we get all we need already? If so return.
+                                    {
+                                        return;
+                                    }
+                                }
+                                //TimewarpOverflow didn't have enough or didn't have what we need. so now the partResrouceSnapshot
                                 Dictionary<string, ProtoPartResourceSnapshot>.Enumerator ppRSenumerator = cacheResource.protoPartResourceSnapshot.GetDictEnumerator();
                                 while (ppRSenumerator.MoveNext())
                                 {                                    
                                     ProtoPartResourceSnapshot partResourceSnapshot = ppRSenumerator.Current.Value;
-                                    if (cacheResource.timeWarpOverflow.totalAmount > 0 && TimeWarp.fetch != null && TimeWarp.CurrentRateIndex > CacheResources.timeWarpStep) //If we have timewarp Overflow check that first.
-                                    {
-                                        double amountTaken = 0;
-                                        cacheResource.timeWarpOverflow.Take(amount, out amountTaken);
-                                        amountReceived += amountTaken;
-                                        amount -= amountTaken;
-                                        if (amount <= 0) //Did we get all we need already? If so return.
-                                        {
-                                            return;
-                                        }
-                                    }
-                                    //TimewarpOverflow didn't have enough or didn't have what we need. so now the partResrouceSnapshot
+                                                                        
                                     if (partResourceSnapshot.amount > 0)
                                     {
                                         if (partResourceSnapshot.amount <= amount) //Not enough but take what it has
@@ -493,8 +500,7 @@ namespace BackgroundResources
                                     double partspaceAvailable = partResourceSnapshot.maxAmount - partResourceSnapshot.amount;
                                     if (partspaceAvailable > 0)
                                     {
-                                        if (amount >= partspaceAvailable
-                                        ) //If we can't fit it all in this part. Put what we can.
+                                        if (amount > partspaceAvailable) //If we can't fit it all in this part. Put what we can.
                                         {
                                             partResourceSnapshot.amount = partResourceSnapshot.maxAmount;
                                             cacheResource.amount += partspaceAvailable;
@@ -523,6 +529,7 @@ namespace BackgroundResources
                                     cacheResource.timeWarpOverflow.Add(amount);
                                     amountReceived += amount;
                                     amount = 0;
+                                    return;
                                 }
                             }
                         }
