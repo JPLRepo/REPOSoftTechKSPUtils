@@ -419,20 +419,29 @@ namespace RSTUtils
 		/// <param name="part">The part to look for the mesh on</param>
 		/// <param name="SetVisible">True will Enable the mesh, False will disable the mesh</param>
 		/// <param name="MeshName">String containing the Mesh name to look for on the part</param>
-		internal static void SetInternalDepthMask(Part part, bool SetVisible, string MeshName = "")
+		/// <param name="cachedTransform">Can pass in a cached transform; which will be used instead of searching for it.</param>
+		/// <returns>The parent/cached transform that was changed... Or Null if not found.</returns>
+		internal static Transform SetInternalDepthMask(Part part, bool SetVisible, string MeshName = "", Transform cachedTransform = null)
 		{
-			if (DepthMaskShader == null) DepthMaskShader = Shader.Find(DepthMaskShaderName);
+		    Transform parentTransform = null;
+            if (DepthMaskShader == null) DepthMaskShader = Shader.Find(DepthMaskShaderName);
 			if (part.internalModel != null)
 			{
-				if (MeshName != "")
+			    if (cachedTransform != null)
+			    {
+			        cachedTransform.gameObject.SetActive(SetVisible);
+			        return cachedTransform;
+			    }
+                if (MeshName != "")
 				{
-					Transform parentTransform = FindInChildren(part.internalModel.transform, MeshName);
+					parentTransform = FindInChildren(part.internalModel.transform, MeshName);
 					if (parentTransform != null)
 					{
 						parentTransform.gameObject.SetActive(SetVisible);
 					}
 				}
 			}
+		    return parentTransform;
 		}
 
 		#endregion Cameras
@@ -1458,9 +1467,15 @@ namespace RSTUtils
 
 		internal static bool IsModInstalled(string assemblyName)
 		{
-			Assembly assembly = (from a in assemblies
-								 where a.FullName.Contains(assemblyName)
-								 select a).FirstOrDefault();
+			Assembly assembly = null;
+		    for (int i = 0; i < assemblies.Length; i++)
+		    {
+		        if (assemblies[i].FullName.Contains(assemblyName))
+		        {
+		            assembly = assemblies[i];
+		            break;
+		        }
+		    }
 			return assembly != null;
 		}
 
