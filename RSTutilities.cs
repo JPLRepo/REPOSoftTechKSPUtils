@@ -1061,7 +1061,7 @@ namespace RSTUtils
 				//Draw the Tooltip
 				GUI.Label(rectToolTipPosition, contTooltip, _TooltipStyle);
 				//On top of everything
-				GUI.depth = 0;
+				GUI.depth = -5;
 
 				//update how long the tip has been on the screen and reset the flags
 				fltTooltipTime += Time.deltaTime;

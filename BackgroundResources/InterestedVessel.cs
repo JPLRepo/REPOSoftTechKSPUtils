@@ -122,6 +122,18 @@ namespace BackgroundResources
                                 {
                                     ModuleHandlers.Add(new Generator(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
                                 }
+                                if (UnloadedResources.InterestingModules[k] == "FissionGenerator")
+                                {
+                                    ModuleHandlers.Add(new NearFutureFissionGenerator(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
+                                }
+                                if (UnloadedResources.InterestingModules[k] == "TacGenericConverter")
+                                {
+                                    ModuleHandlers.Add(new TacGenericConverter(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
+                                }
+                                if (UnloadedResources.InterestingModules[k] == "ModuleResourceConverter" && ModuleResourceConverter.ResourceConverterGeneratesEC(partsnapshot))
+                                {
+                                    ModuleHandlers.Add(new ModuleResourceConverter(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
+                                }
                             }
                         }
                     }

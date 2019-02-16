@@ -34,6 +34,9 @@ namespace BackgroundResources
             InterestingModules.Add("ModuleDeployableSolarPanel");
             InterestingModules.Add("ModuleGenerator");
             InterestingModules.Add("KopernicusSolarPanel");
+            InterestingModules.Add("FissionGenerator");
+            InterestingModules.Add("TacGenericConverter");
+            InterestingModules.Add("ModuleResourceConverter");
             BackgroundProcessingInstalled = Utilities.IsModInstalled("BackgroundProcessing");           
             GameEvents.onGamePause.Add(onGamePause);
             GameEvents.onGameUnpause.Add(onGameUnPause);
