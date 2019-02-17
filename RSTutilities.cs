@@ -480,43 +480,9 @@ namespace RSTUtils
 			Log_Debug("isATMBreathable Inflight? " + value + " InFlight " + HighLogic.LoadedSceneIsFlight + " StaticPressure " + FlightGlobals.getStaticPressure());
 			return value;
 		}
-
-		// The following method is derived from TextureReplacer mod. Which is licensed as:
-		//Copyright © 2013-2015 Davorin Učakar, Ryan Bray
-		//Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-		//The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-		private static Mesh[] helmetMesh = { null, null };
-
-		private static Mesh[] visorMesh = { null, null };
-		private static bool helmetMeshstored;
-
-		internal static void storeHelmetMesh()
-		{
-			Log_Debug("StoreHelmetMesh");
-			foreach (Kerbal kerbal in Resources.FindObjectsOfTypeAll<Kerbal>())
-			{
-				int gender = kerbal.transform.name == "kerbalFemale" ? 1 : 0;
-				// Save pointer to helmet & visor meshes so helmet removal can restore them.
-				foreach (SkinnedMeshRenderer smr in kerbal.GetComponentsInChildren<SkinnedMeshRenderer>(true))
-				{
-					if (smr.name.EndsWith("helmet", StringComparison.Ordinal))
-						helmetMesh[gender] = smr.sharedMesh;
-					else if (smr.name.EndsWith("visor", StringComparison.Ordinal))
-						visorMesh[gender] = smr.sharedMesh;
-				}
-			}
-			helmetMeshstored = true;
-		}
-
-		// The following method is derived from TextureReplacer mod.Which is licensed as:
-		//Copyright © 2013-2015 Davorin Učakar, Ryan Bray
-		//Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-		//The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+        
 		internal static void setHelmetshaders(Kerbal thatKerbal, bool helmetOn)
 		{
-			if (!helmetMeshstored)
-				storeHelmetMesh();
-
 			//This will check if Atmospher is breathable then we always remove our hetmets regardless.
 			if (helmetOn && isAtmBreathable())
 			{
@@ -526,13 +492,7 @@ namespace RSTUtils
 
 			try
 			{
-				foreach (SkinnedMeshRenderer smr in thatKerbal.helmetTransform.GetComponentsInChildren<SkinnedMeshRenderer>())
-				{
-					if (smr.name.EndsWith("helmet", StringComparison.Ordinal))
-						smr.sharedMesh = helmetOn ? helmetMesh[(int)thatKerbal.protoCrewMember.gender] : null;
-					else if (smr.name.EndsWith("visor", StringComparison.Ordinal))
-						smr.sharedMesh = helmetOn ? visorMesh[(int)thatKerbal.protoCrewMember.gender] : null;
-				}
+				thatKerbal.ShowHelmet(helmetOn);
 			}
 			catch (Exception ex)
 			{
@@ -541,10 +501,6 @@ namespace RSTUtils
 			}
 		}
 
-		// The following method is derived from TextureReplacer mod. Which is licensed as:
-		//Copyright © 2013-2015 Davorin Učakar, Ryan Bray
-		//Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-		//The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 		internal static void setHelmets(this Part thisPart, bool helmetOn)
 		{
 			if (thisPart.internalModel == null)
@@ -552,9 +508,6 @@ namespace RSTUtils
 				Log_Debug("setHelmets but no internalModel");
 				return;
 			}
-
-			if (!helmetMeshstored)
-				storeHelmetMesh();
 
 			Log_Debug("setHelmets helmetOn=" + helmetOn);
 			//Kerbal thatKerbal = null;
@@ -567,16 +520,7 @@ namespace RSTUtils
 					{
 						thatSeat.allowCrewHelmet = helmetOn;
 						Log_Debug("Setting helmet=" + helmetOn + " for kerbal " + thatSeat.crew.name);
-						// `Kerbal.ShowHelmet(false)` irreversibly removes a helmet while
-						// `Kerbal.ShowHelmet(true)` has no effect at all. We need the following workaround.
-						// I think this can be done using a coroutine to despawn and spawn the internalseat crewmember kerbalref.
-						// But I found this workaround in TextureReplacer so easier to use that.
-						//if (thatKerbal.showHelmet)
-						//{
-						setHelmetshaders(thatKerbal, helmetOn);
-						//}
-						//else
-						//    Log_Debug("Showhelmet is OFF so the helmettransform does not exist");
+                        thatKerbal.ShowHelmet(helmetOn);
 					}
 					else
 						Log_Debug("kerbalref = null?");
@@ -626,20 +570,46 @@ namespace RSTUtils
 							{
 								layerInfo[i] = anim.GetCurrentAnimatorStateInfo(i);
 							}
-							myOverrideController.runtimeAnimatorController = myController;
-							myOverrideController["idle_animA_upWord"] = myOverrideController["idle_animH_notDoingAnything"];
-							myOverrideController["idle_animB"] = myOverrideController["idle_animH_notDoingAnything"];
-							myOverrideController["idle_animC"] = myOverrideController["idle_animH_notDoingAnything"];
-							myOverrideController["idle_animD_dance"] = myOverrideController["idle_animH_notDoingAnything"];
-							myOverrideController["idle_animE_drummingHelmet"] = myOverrideController["idle_animH_notDoingAnything"];
-							myOverrideController["idle_animI_drummingControls"] = myOverrideController["idle_animH_notDoingAnything"];
-							myOverrideController["idle_animJ_yo"] = myOverrideController["idle_animH_notDoingAnything"];
-							myOverrideController["idle_animJ_IdleLoopShort"] = myOverrideController["idle_animH_notDoingAnything"];
-							myOverrideController["idle_animK_footStretch"] = myOverrideController["idle_animH_notDoingAnything"];
-							myOverrideController["head_rotation_staringUp"] = myOverrideController["idle_animH_notDoingAnything"];
-							myOverrideController["head_rotation_longLookUp"] = myOverrideController["idle_animH_notDoingAnything"];
-							myOverrideController["head_faceExp_fun_ohAh"] = myOverrideController["idle_animH_notDoingAnything"];
-							// Put this line at the end because when you assign a controller on an Animator, unity rebinds all the animated properties
+						    if (kerbal.protoCrewMember.gender == ProtoCrewMember.Gender.Male)
+						    {
+						        myOverrideController.runtimeAnimatorController = myController;
+						        myOverrideController["idle_animA_upWord"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animB"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animC"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animD_dance"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animE_drummingHelmet"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animF_helmetAdjustB"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animG_helmetScratching"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animI_drummingControls"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animJ_yo"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animK_footStretch"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["head_rotation_staringUp"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["head_rotation_longLookUp"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["head_faceExp_fun_ohAh"] = myOverrideController["idle_animH_notDoingAnything"];
+						    }
+						    else //Female
+						    {
+						        myOverrideController.runtimeAnimatorController = myController;
+						        myOverrideController["idle_animA"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animB"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animC"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animD"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animD_dance"] = myOverrideController["idle_animH_notDoingAnything"];
+                                myOverrideController["idle_animE"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animF"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animG"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animH"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animI"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animI_drummingControls"] = myOverrideController["idle_animH_notDoingAnything"];
+                                myOverrideController["idle_animJ"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animJ_yo"] = myOverrideController["idle_animH_notDoingAnything"];
+                                myOverrideController["idle_animK"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["idle_animK_footStretch"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["head_rotation_staringUp"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["head_rotation_longLookUp"] = myOverrideController["idle_animH_notDoingAnything"];
+						        myOverrideController["head_faceExp_fun_ohAh"] = myOverrideController["idle_animH_notDoingAnything"];
+                            }
+						    // Put this line at the end because when you assign a controller on an Animator, unity rebinds all the animated properties
 							anim.runtimeAnimatorController = myOverrideController;
 							// Force an update
 							anim.Update(0.0f);
