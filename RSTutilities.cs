@@ -258,7 +258,31 @@ namespace RSTUtils
 			return null;
 		}
 
-		/**
+        // Use Reflection to get a field from an object
+        internal static object GetObjectMethod(object o, string methodName)
+        {
+            object outputObj = new object();
+            bool foundObj = false;
+            foreach (MethodInfo method in o.GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public))
+            {
+                if (!method.IsStatic)
+                {
+                    if (method.Name == methodName)
+                    {
+                        foundObj = true;
+                        outputObj = method;
+                        break;
+                    }
+                }
+            }
+            if (foundObj)
+            {
+                return outputObj;
+            }
+            return null;
+        }
+
+        /**
 		  * Recursively searches for a named transform in the Transform heirarchy.  The requirement of
 		  * such a function is sad.  This should really be in the Unity3D API.  Transform.Find() only
 		  * searches in the immediate children.
@@ -269,7 +293,7 @@ namespace RSTUtils
 		  * @return Desired transform or null if it could not be found
 		  */
 
-		internal static Transform FindInChildren(Transform transform, string name)
+        internal static Transform FindInChildren(Transform transform, string name)
 		{
 			// Is this null?
 			if (transform == null)
@@ -647,6 +671,22 @@ namespace RSTUtils
 				}
 			}
 		}
+
+        internal static ProtoCrewMember findKerbalInPart(Part partRef, string kerbalName)
+        {
+            if (partRef.protoModuleCrew == null)
+            {
+                return null;
+            }
+            for (int i = 0; i < partRef.protoModuleCrew.Count; i++)
+            {
+                if (partRef.protoModuleCrew[i].name == kerbalName)
+                {
+                    return partRef.protoModuleCrew[i];
+                }
+            }
+            return null;
+        }
 
 		#endregion Kerbals
 

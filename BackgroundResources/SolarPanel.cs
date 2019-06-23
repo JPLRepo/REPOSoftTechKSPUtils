@@ -46,6 +46,26 @@ namespace BackgroundResources
 
         public SolarPanel(ConfigNode node, InterestedVessel vessel, ProtoPartModuleSnapshot modulesnapshot, ProtoPartSnapshot partsnapshot)
         {
+            if (node == null)
+            {
+                Debug.Log("[UnloadedResources]: SolarPanel - Call to constructor failed. node is null.");
+                return;
+            }
+            if (vessel == null)
+            {
+                Debug.Log("[UnloadedResources]: SolarPanel - Call to constructor failed. vessel is null.");
+                return;
+            }
+            if (modulesnapshot == null)
+            {
+                Debug.Log("[UnloadedResources]: SolarPanel - Call to constructor failed. modulesnapshot is null.");
+                return;
+            }
+            if (partsnapshot == null)
+            {
+                Debug.Log("[UnloadedResources]: SolarPanel - Call to constructor failed. partsnapshot is null.");
+                return;
+            }
             this.vessel = vessel;
             this.PartModule = modulesnapshot;
             
@@ -68,6 +88,11 @@ namespace BackgroundResources
                 flowRate = 0f;
             }
             Part part = PartLoader.getPartInfoByName(partsnapshot.partName).partPrefab;
+            if (part == null)
+            {
+                Debug.Log("[UnloadedResources]: SolarPanel - Unable to Find Part: " + partsnapshot.partName);
+                return;
+            }
             for (int i = 0; i < part.Modules.Count; ++i)
             {
                 if (part.Modules[i].moduleName == "ModuleDeployableSolarPanel" || part.Modules[i].moduleName == "KopernicusSolarPanel")

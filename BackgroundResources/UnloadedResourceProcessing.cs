@@ -386,7 +386,7 @@ namespace BackgroundResources
                 CacheResources.CreatecachedVesselResources(vessel);
             }
             //If BackgroundProcessing is installed and our cache hasn't been refreshed in 3 mins. Then refresh it.
-            if (UnloadedResources.Instance.BackgroundProcessingInstalled &&
+            if (UnloadedResources.BackgroundProcessingInstalled &&
                 (Time.time - UnloadedResources.InterestedVessels[vessel].TimeLastRefresh > 180))
             {
                 CacheResources.CreatecachedVesselResources(vessel);

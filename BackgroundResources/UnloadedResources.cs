@@ -11,7 +11,8 @@ namespace BackgroundResources
         public static UnloadedResources Instance;
         public static DictionaryValueList<ProtoVessel, InterestedVessel> InterestedVessels;
         public static List<string> InterestingModules;
-        internal bool BackgroundProcessingInstalled = false;
+        public static bool DeepFreezeInstalled = false;
+        public static bool BackgroundProcessingInstalled = false;
         private bool loggedBackgroundProcessing = false;
         private bool gamePaused = false;
         public const string configNodeName = "BACKGROUNDRESOURCES";
@@ -37,7 +38,9 @@ namespace BackgroundResources
             InterestingModules.Add("FissionGenerator");
             InterestingModules.Add("TacGenericConverter");
             InterestingModules.Add("ModuleResourceConverter");
-            BackgroundProcessingInstalled = Utilities.IsModInstalled("BackgroundProcessing");           
+            InterestingModules.Add("DeepFreezer");
+            BackgroundProcessingInstalled = Utilities.IsModInstalled("BackgroundProcessing");
+            DeepFreezeInstalled = RSTUtils.Utilities.IsModInstalled("DeepFreeze");
             GameEvents.onGamePause.Add(onGamePause);
             GameEvents.onGameUnpause.Add(onGameUnPause);
             if (BackgroundProcessingInstalled)
@@ -52,6 +55,7 @@ namespace BackgroundResources
             {
                 onGamePause();
             }
+            
             Utilities.Log("BackgroundProcessed Awake");
         }
 
