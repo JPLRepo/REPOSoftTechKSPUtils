@@ -11,6 +11,7 @@ namespace BackgroundResources
     {
         public ProtoPartModuleSnapshot PartModule;
         public InterestedVessel vessel;
+        public ProtoPartSnapshot ProtoPart;
 
         public bool Equals(ProtoPartModuleSnapshot module)
         {
@@ -133,6 +134,10 @@ namespace BackgroundResources
                                 if (UnloadedResources.InterestingModules[k] == "ModuleResourceConverter" && ModuleResourceConverter.ResourceConverterGeneratesEC(partsnapshot))
                                 {
                                     ModuleHandlers.Add(new ModuleResourceConverter(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
+                                }
+                                if (UnloadedResources.InterestingModules[k] == "DeepFreezer")
+                                {
+                                    ModuleHandlers.Add(new DeepFreezer(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
                                 }
                             }
                         }

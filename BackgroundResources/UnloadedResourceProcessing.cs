@@ -200,6 +200,7 @@ namespace BackgroundResources
                     resourceNode.AddValue("craftID", ppRSenumerator.Current.Key);
                     ppRSenumerator.Current.Value.Save(resourceNode);                    
                 }
+                ppRSenumerator.Dispose();
                 return node;
             }
 
@@ -234,6 +235,7 @@ namespace BackgroundResources
                     {
                         newCacheResource.protoPartResourceSnapshot.Add(ppRSenumerator.Current.Key, ppRSenumerator.Current.Value);
                     }
+                    ppRSenumerator.Dispose();
                     return newCacheResource;
                 }                
                 return null;
@@ -482,9 +484,11 @@ namespace BackgroundResources
                                     }
                                     if (amount <= 0) //Did we get all we wanted? if so return.
                                     {
+                                        ppRSenumerator.Dispose();
                                         return;
                                     }
                                 }
+                                ppRSenumerator.Dispose();
                             }
                         }
                         else  //We are putting a resource

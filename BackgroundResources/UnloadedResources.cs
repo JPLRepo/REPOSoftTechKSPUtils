@@ -55,6 +55,11 @@ namespace BackgroundResources
             {
                 onGamePause();
             }
+
+            if (DeepFreezeInstalled)
+            {
+                DFWrapper.InitDFWrapper();
+            }
             
             Utilities.Log("BackgroundProcessed Awake");
         }
@@ -93,6 +98,7 @@ namespace BackgroundResources
                         ProcessInterestedModules(vslenumerator.Current.Value);
                     }
                 }
+                vslenumerator.Dispose();
             }
         }
 
@@ -134,6 +140,7 @@ namespace BackgroundResources
             {
                 ConfigNode vesselNode = vslenumerator.Current.Value.Save(settingsNode);                
             }
+            vslenumerator.Dispose();
             Utilities.Log("OnSave: ", gameNode);
         }
 
@@ -173,6 +180,26 @@ namespace BackgroundResources
             {
                 InterestedVessels.Remove(vessel);
             }
+        }
+
+        /// <summary>
+        /// Other mods need to call this to stop processing a ProtoVessel.
+        /// Will write this into an API in future version.
+        /// </summary>
+        /// <param name="vesselId">Guid of the proto vessel.</param>
+        public void RemoveInterestedVessel(Guid vesselId)
+        {
+            Dictionary<ProtoVessel, InterestedVessel>.Enumerator vslenumerator = InterestedVessels.GetDictEnumerator();
+            while (vslenumerator.MoveNext())
+            {
+                if (vslenumerator.Current.Key.vesselID == vesselId)
+                {
+                    InterestedVessels.Remove(vslenumerator.Current.Key);
+                    vslenumerator.Dispose();
+                    return;
+                }
+            }
+            vslenumerator.Dispose();
         }
 
         /// <summary>

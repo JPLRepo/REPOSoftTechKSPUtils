@@ -54,11 +54,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DFWrapper.cs" />
     <Compile Include="ModuleResourceConverter.cs" />
     <Compile Include="Generator.cs" />
     <Compile Include="InterestedVessel.cs" />
     <Compile Include="NearFutureFissionGenerator.cs" />
     <Compile Include="RSTutilities.cs" />
+    <Compile Include="DeepFreezer.cs" />
     <Compile Include="SolarPanel.cs" />
     <Compile Include="TacGenericConverter.cs" />
     <Compile Include="UnloadedResourceProcessing.cs" />
