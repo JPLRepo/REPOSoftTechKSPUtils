@@ -72,8 +72,8 @@ namespace BackgroundResources
                 for (int i = 0; i < partsnapshot.partPrefab.Modules.Count; i++)
                 {
                     BaseConverter converter = partsnapshot.partPrefab.Modules[i] as BaseConverter;
-                    Tac.TacGenericConverter tacConverter = partsnapshot.partPrefab.Modules[i] as Tac.TacGenericConverter;
-                    if (converter != null && tacConverter == null)
+                    bool tacConverter = partsnapshot.partPrefab.Modules[i].ClassID == "Tac.TacGenericConverter".GetHashCode();
+                    if (converter != null && tacConverter)
                     {
                         for (int j = 0; j < converter.outputList.Count; j++)
                         {
@@ -98,8 +98,8 @@ namespace BackgroundResources
                 for (int i = 0; i < partsnapshot.partPrefab.Modules.Count; i++)
                 {
                     BaseConverter converter = partsnapshot.partPrefab.Modules[i] as BaseConverter;
-                    Tac.TacGenericConverter tacConverter = partsnapshot.partPrefab.Modules[i] as Tac.TacGenericConverter;
-                    if (converter != null && tacConverter == null)
+                    bool tacConverter = partsnapshot.partPrefab.Modules[i].ClassID == "Tac.TacGenericConverter".GetHashCode();
+                    if (converter != null && tacConverter)
                     {
                         inputResList = converter.inputList;
                         outputResList = converter.outputList;
@@ -107,6 +107,7 @@ namespace BackgroundResources
                     }
                 }
             }
+            this.moduleType = UnloadedResources.ModuleType.Both;
         }
 
         public override void ProcessHandler()

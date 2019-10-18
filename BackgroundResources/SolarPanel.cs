@@ -110,6 +110,7 @@ namespace BackgroundResources
                     break;
                 }
             }
+            this.moduleType = UnloadedResources.ModuleType.Producer;
         }
 
         private bool Raytrace(Vector3d p, Vector3d dir, CelestialBody body)

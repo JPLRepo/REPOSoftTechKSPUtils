@@ -8,14 +8,22 @@ namespace BackgroundResources
     [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.SPACECENTER, GameScenes.FLIGHT, GameScenes.TRACKSTATION)]
     public class UnloadedResources :ScenarioModule
     {
+        public enum ModuleType
+        {
+            Producer,
+            Consumer,
+            Both
+        }
+
         public static UnloadedResources Instance;
         public static DictionaryValueList<ProtoVessel, InterestedVessel> InterestedVessels;
-        public static List<string> InterestingModules;
+        public static DictionaryValueList<string, ModuleType> InterestingModules;
         public static bool DeepFreezeInstalled = false;
         public static bool BackgroundProcessingInstalled = false;
         private bool loggedBackgroundProcessing = false;
         private bool gamePaused = false;
         public const string configNodeName = "BACKGROUNDRESOURCES";
+        public BGRSettings bgrSettings;
 
         /// <summary>
         /// Awake method will setup the InterestingModules that this mod will generate ElectricCharge for.
@@ -31,18 +39,19 @@ namespace BackgroundResources
             Utilities.Log("OnAwake in " + HighLogic.LoadedScene);
             base.OnAwake();
             InterestedVessels = new DictionaryValueList<ProtoVessel, InterestedVessel>();
-            InterestingModules = new List<string>();
-            InterestingModules.Add("ModuleDeployableSolarPanel");
-            InterestingModules.Add("ModuleGenerator");
-            InterestingModules.Add("KopernicusSolarPanel");
-            InterestingModules.Add("FissionGenerator");
-            InterestingModules.Add("TacGenericConverter");
-            InterestingModules.Add("ModuleResourceConverter");
-            InterestingModules.Add("DeepFreezer");
+            InterestingModules = new DictionaryValueList<string, ModuleType>();
+            InterestingModules.Add("ModuleDeployableSolarPanel", ModuleType.Producer);
+            InterestingModules.Add("ModuleGenerator", ModuleType.Producer);
+            InterestingModules.Add("KopernicusSolarPanel", ModuleType.Producer);
+            InterestingModules.Add("FissionGenerator", ModuleType.Producer);
+            InterestingModules.Add("TacGenericConverter", ModuleType.Both);
+            InterestingModules.Add("ModuleResourceConverter", ModuleType.Both);
+            InterestingModules.Add("DeepFreezer", ModuleType.Consumer);
             BackgroundProcessingInstalled = Utilities.IsModInstalled("BackgroundProcessing");
             DeepFreezeInstalled = RSTUtils.Utilities.IsModInstalled("DeepFreeze");
             GameEvents.onGamePause.Add(onGamePause);
             GameEvents.onGameUnpause.Add(onGameUnPause);
+            GameEvents.OnGameSettingsApplied.Add(ApplySettings);
             if (BackgroundProcessingInstalled)
             {
                 if (!loggedBackgroundProcessing)
@@ -60,6 +69,7 @@ namespace BackgroundResources
             {
                 DFWrapper.InitDFWrapper();
             }
+            bgrSettings = new BGRSettings();
             
             Utilities.Log("BackgroundProcessed Awake");
         }
@@ -68,6 +78,7 @@ namespace BackgroundResources
         {
             GameEvents.onGamePause.Remove(onGamePause);
             GameEvents.onGameUnpause.Remove(onGameUnPause);
+            GameEvents.OnGameSettingsApplied.Remove(ApplySettings);
         }
 
         /// <summary>
@@ -105,6 +116,7 @@ namespace BackgroundResources
         public override void OnLoad(ConfigNode gameNode)
         {
             base.OnLoad(gameNode);
+            bgrSettings.Load(gameNode);
             if (gameNode.HasNode(configNodeName))
             {
                 ConfigNode settingsNode = gameNode.GetNode(configNodeName);
@@ -126,6 +138,7 @@ namespace BackgroundResources
         public override void OnSave(ConfigNode gameNode)
         {
             base.OnSave(gameNode);
+            bgrSettings.Save(gameNode);
             ConfigNode settingsNode;
             if (gameNode.HasNode(configNodeName))
             {
@@ -152,6 +165,14 @@ namespace BackgroundResources
         private void onGameUnPause()
         {
             gamePaused = false;
+        }
+
+        public void ApplySettings()
+        {
+            if (bgrSettings != null)
+            {
+                bgrSettings.ApplySettings();
+            }
         }
 
         /// <summary>

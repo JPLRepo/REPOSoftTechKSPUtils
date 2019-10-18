@@ -13,6 +13,7 @@
             generationRate = 0f;
             node.TryGetValue("CurrentGeneration", ref generationRate);
             node.TryGetValue("isEnabled", ref isEnabled);
+            this.moduleType = UnloadedResources.ModuleType.Producer;
         }
 
         public override void ProcessHandler()

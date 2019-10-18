@@ -30,6 +30,7 @@ namespace BackgroundResources
                     }
                 }
             }
+            this.moduleType = UnloadedResources.ModuleType.Producer;
         }
 
         public override void ProcessHandler()

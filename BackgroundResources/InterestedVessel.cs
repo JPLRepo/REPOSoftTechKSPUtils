@@ -9,9 +9,11 @@ namespace BackgroundResources
 {
     public class SnapshotModuleHandler : IEquatable<ProtoPartModuleSnapshot>
     {
+        
         public ProtoPartModuleSnapshot PartModule;
         public InterestedVessel vessel;
         public ProtoPartSnapshot ProtoPart;
+        public UnloadedResources.ModuleType moduleType = UnloadedResources.ModuleType.Both;
 
         public bool Equals(ProtoPartModuleSnapshot module)
         {
@@ -19,7 +21,31 @@ namespace BackgroundResources
         }
 
         public virtual void ProcessHandler()
-        { }
+        {
+            if (UnloadedResources.Instance)
+            {
+                if (!UnloadedResources.Instance.bgrSettings.backgroundresources)
+                {
+                    vessel.TimeLastRefresh = Time.time;
+                    return;
+                }
+                if (!UnloadedResources.Instance.bgrSettings.ConsumeResources && moduleType == UnloadedResources.ModuleType.Consumer)
+                {
+                    vessel.TimeLastRefresh = Time.time;
+                    return;
+                }
+                else if (!UnloadedResources.Instance.bgrSettings.ProduceResources && moduleType == UnloadedResources.ModuleType.Producer)
+                {
+                    vessel.TimeLastRefresh = Time.time;
+                    return;
+                }
+                else if (moduleType == UnloadedResources.ModuleType.Both && (!UnloadedResources.Instance.bgrSettings.ConsumeResources || !UnloadedResources.Instance.bgrSettings.ProduceResources))
+                {
+                    vessel.TimeLastRefresh = Time.time;
+                    return;
+                }
+            }
+        }
     }
 
     public static class ListExtension
@@ -109,39 +135,36 @@ namespace BackgroundResources
                 for (int j = 0; j < partsnapshot.modules.Count; j++)
                 {
                     ProtoPartModuleSnapshot modulesnapshot = partsnapshot.modules[j];
-                    for (int k = 0; k < UnloadedResources.InterestingModules.Count; k++)
+                    if (UnloadedResources.InterestingModules.ContainsKey(modulesnapshot.moduleName))
                     {
-                        if (modulesnapshot.moduleName == UnloadedResources.InterestingModules[k])
+                        if (!ModuleHandlers.ContainsModule(modulesnapshot))
                         {
-                            if (!ModuleHandlers.ContainsModule(modulesnapshot))
+                            if (modulesnapshot.moduleName == "ModuleDeployableSolarPanel" || modulesnapshot.moduleName == "KopernicusSolarPanel")
                             {
-                                if (UnloadedResources.InterestingModules[k] == "ModuleDeployableSolarPanel" || UnloadedResources.InterestingModules[k] == "KopernicusSolarPanel")
-                                {
-                                    ModuleHandlers.Add(new SolarPanel(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
-                                }
-                                if (UnloadedResources.InterestingModules[k] == "ModuleGenerator")
-                                {
-                                    ModuleHandlers.Add(new Generator(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
-                                }
-                                if (UnloadedResources.InterestingModules[k] == "FissionGenerator")
-                                {
-                                    ModuleHandlers.Add(new NearFutureFissionGenerator(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
-                                }
-                                if (UnloadedResources.InterestingModules[k] == "TacGenericConverter")
-                                {
-                                    ModuleHandlers.Add(new TacGenericConverter(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
-                                }
-                                if (UnloadedResources.InterestingModules[k] == "ModuleResourceConverter" && ModuleResourceConverter.ResourceConverterGeneratesEC(partsnapshot))
-                                {
-                                    ModuleHandlers.Add(new ModuleResourceConverter(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
-                                }
-                                if (UnloadedResources.InterestingModules[k] == "DeepFreezer")
-                                {
-                                    ModuleHandlers.Add(new DeepFreezer(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
-                                }
+                                ModuleHandlers.Add(new SolarPanel(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
+                            }
+                            if (modulesnapshot.moduleName == "ModuleGenerator")
+                            {
+                                ModuleHandlers.Add(new Generator(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
+                            }
+                            if (modulesnapshot.moduleName == "FissionGenerator")
+                            {
+                                ModuleHandlers.Add(new NearFutureFissionGenerator(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
+                            }
+                            if (modulesnapshot.moduleName == "TacGenericConverter")
+                            {
+                                ModuleHandlers.Add(new TacGenericConverter(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
+                            }
+                            if (modulesnapshot.moduleName == "ModuleResourceConverter" && ModuleResourceConverter.ResourceConverterGeneratesEC(partsnapshot))
+                            {
+                                ModuleHandlers.Add(new ModuleResourceConverter(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
+                            }
+                            if (modulesnapshot.moduleName == "DeepFreezer")
+                            {
+                                ModuleHandlers.Add(new DeepFreezer(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
                             }
                         }
-                    }
+                    }                    
                 }
             }
         }

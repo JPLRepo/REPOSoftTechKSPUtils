@@ -57,6 +57,7 @@ namespace BackgroundResources
             this.vessel = vessel;
             this.PartModule = modulesnapshot;
             this.ProtoPart = partsnapshot;
+            this.moduleType = UnloadedResources.ModuleType.Consumer;
         }
 
         

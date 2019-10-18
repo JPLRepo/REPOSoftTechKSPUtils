@@ -74,8 +74,9 @@ namespace BackgroundResources
                 for (int i = 0; i < partsnapshot.partPrefab.Modules.Count; i++)
                 {
                     BaseConverter converter = partsnapshot.partPrefab.Modules[i] as BaseConverter;
-                    Tac.TacGenericConverter tacConverter = partsnapshot.partPrefab.Modules[i] as Tac.TacGenericConverter; 
-                    if (converter != null && tacConverter != null)
+                    bool tacConverter = partsnapshot.partPrefab.Modules[i].moduleName == "TacGenericConverter";
+                    //Tac.TacGenericConverter tacConverter = partsnapshot.partPrefab.Modules[i] as Tac.TacGenericConverter; 
+                    if (converter != null && tacConverter)
                     {
                         inputResList = converter.inputList;
                         outputResList = converter.outputList;
@@ -84,6 +85,7 @@ namespace BackgroundResources
                 }
             }
             node.TryGetValue("IsActivated", ref converterIsActive);
+            this.moduleType = UnloadedResources.ModuleType.Both;
         }
 
         public override void ProcessHandler()
