@@ -1028,7 +1028,7 @@ namespace RSTUtils
 		// THE SOFTWARE.
 		internal static void DrawToolTip()
 		{
-			if (strToolTipText != "" && (fltTooltipTime < fltMaxToolTipTime))
+			if (strToolTipText != "" && (fltTooltipTime < fltMaxToolTipTime) && Event.current != null)
 			{
 				GUIContent contTooltip = new GUIContent(strToolTipText);
 				if (!blnToolTipDisplayed || (strToolTipText != strLastTooltipText))
@@ -1069,7 +1069,7 @@ namespace RSTUtils
 
 		internal static void SetTooltipText()
 		{
-			if (Event.current.type == EventType.Repaint)
+			if (Event.current != null && Event.current.type == EventType.Repaint)
 			{
 				strToolTipText = GUI.tooltip;
 			}

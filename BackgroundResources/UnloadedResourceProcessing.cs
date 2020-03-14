@@ -218,7 +218,7 @@ namespace BackgroundResources
                 {
                     string keyField = protoresourcesnapNodes[rsI].GetValue("craftID");                    
                     ProtoPartResourceSnapshot protoresSnap = new ProtoPartResourceSnapshot(protoresourcesnapNodes[rsI]);
-                    ProtoPartResourceSnapshot protoVesselResSnap = getMatchingResourceSnapShot(keyField, protoresSnap, protoVessel);
+                    ProtoPartResourceSnapshot protoVesselResSnap = GetMatchingResourceSnapShot(keyField, protoresSnap, protoVessel);
                     if (protoVesselResSnap != null)
                     {
                         protoresSnapshots.Add(keyField, protoVesselResSnap);
@@ -242,7 +242,7 @@ namespace BackgroundResources
             }
         }
 
-        public static ProtoPartResourceSnapshot getMatchingResourceSnapShot(string keyField, ProtoPartResourceSnapshot protoresSnap, ProtoVessel protoVessel)
+        public static ProtoPartResourceSnapshot GetMatchingResourceSnapShot(string keyField, ProtoPartResourceSnapshot protoresSnap, ProtoVessel protoVessel)
         {
             ProtoPartResourceSnapshot returnSnapshot = null;
             string resourceKey = "";

@@ -184,5 +184,47 @@ namespace BackgroundResources
                 CachedResources[crI].timeWarpOverflow.Update();
             }
         }
+
+        public static bool ContainsInterestedModules(ProtoVessel protoVessel)
+        {
+            for (int i = 0; i < protoVessel.protoPartSnapshots.Count; i++)
+            {
+                ProtoPartSnapshot partsnapshot = protoVessel.protoPartSnapshots[i];
+
+                for (int j = 0; j < partsnapshot.modules.Count; j++)
+                {
+                    ProtoPartModuleSnapshot modulesnapshot = partsnapshot.modules[j];
+                    if (UnloadedResources.InterestingModules.ContainsKey(modulesnapshot.moduleName))
+                    {
+                        if (modulesnapshot.moduleName == "ModuleDeployableSolarPanel" || modulesnapshot.moduleName == "KopernicusSolarPanel")
+                        {
+                            return true;
+                        }
+                        if (modulesnapshot.moduleName == "ModuleGenerator")
+                        {
+                            return true;
+                        }
+                        if (modulesnapshot.moduleName == "FissionGenerator")
+                        {
+                            return true;
+                        }
+                        if (modulesnapshot.moduleName == "TacGenericConverter")
+                        {
+                            return true;
+                        }
+                        if (modulesnapshot.moduleName == "ModuleResourceConverter" && ModuleResourceConverter.ResourceConverterGeneratesEC(partsnapshot))
+                        {
+                            return true;
+                        }
+                        if (modulesnapshot.moduleName == "DeepFreezer")
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
     }
 }

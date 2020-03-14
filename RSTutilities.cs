@@ -26,6 +26,7 @@ using UniLinq;
 using System.Reflection;
 using System.Text;
 using Highlighting;
+using KSP.UI.Screens.Flight;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using Random = System.Random;
@@ -234,7 +235,7 @@ namespace RSTUtils
 			Debug.Log("--------------------------------------");
 		}
 
-		// Use Reflection to get a field from an object
+		// Use Reflection to get a field value from an object
 		internal static object GetObjectField(object o, string fieldName)
 		{
 			object outputObj = new object();
@@ -257,6 +258,22 @@ namespace RSTUtils
 			}
 			return null;
 		}
+
+        // Use Reflection to get a field from an object
+        internal static FieldInfo GetFieldObject(object o, string fieldName)
+        {
+            foreach (FieldInfo field in o.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public))
+            {
+                if (!field.IsStatic)
+                {
+                    if (field.Name == fieldName)
+                    {
+                        return field;
+                    }
+                }
+            }
+            return null;
+        }
 
         // Use Reflection to get a field from an object
         internal static object GetObjectMethod(object o, string methodName)
@@ -421,17 +438,14 @@ namespace RSTUtils
 			return Camera.allCameras.FirstOrDefault(cam => cam.name == camera);
 		}
 
-		private static Camera StockOverlayCamera;
 		/// <summary>
 		/// Returns True if the Stock Overlay Camera Mode is on, otherwise will return false.
 		/// </summary>
 		public static bool StockOverlayCamIsOn
 		{
 			get
-			{
-				StockOverlayCamera = findCameraByName("InternalSpaceOverlay Host");
-				if (StockOverlayCamera != null) return true;
-				return false;
+            {
+                return KerbalPortraitGallery.isIVAOverlayVisible;
 			}
 		}
 
@@ -534,8 +548,23 @@ namespace RSTUtils
 			}
 
 			Log_Debug("setHelmets helmetOn=" + helmetOn);
-			//Kerbal thatKerbal = null;
-			foreach (InternalSeat thatSeat in thisPart.internalModel.seats)
+            //if helmetOn is true - we want to put them on. Let's not if there is breathable atmosphere.
+            if (thisPart.vessel != null && helmetOn)
+            {
+                CelestialBody vesselBody = thisPart.vessel.mainBody;
+                bool atmosExistence = vesselBody.atmosphere && thisPart.vessel.altitude < vesselBody.atmosphereDepth;
+                if (atmosExistence && vesselBody.atmosphereContainsOxygen)
+                {
+                    //Has breathable Atmosphere. Now Check Pressure and water.
+                    if (thisPart.staticPressureAtm < 5f && !thisPart.Splashed)
+                    {
+                        //We have breathable atmosphere and not too much pressure or water.
+                        helmetOn = false;
+                    }
+                }
+            }
+
+            foreach (InternalSeat thatSeat in thisPart.internalModel.seats)
 			{
 				if (thatSeat.crew != null)
 				{
@@ -1050,7 +1079,7 @@ namespace RSTUtils
 			if (strToolTipText != "" && (fltTooltipTime < fltMaxToolTipTime))
 			{
 				GUIContent contTooltip = new GUIContent(strToolTipText);
-				if (!blnToolTipDisplayed || (strToolTipText != strLastTooltipText))
+				if (!blnToolTipDisplayed || (strToolTipText != strLastTooltipText) && Event.current != null)
 				{
 					//reset display time if text changed
 					fltTooltipTime = 0f;
@@ -1088,7 +1117,7 @@ namespace RSTUtils
 
 		internal static void SetTooltipText()
 		{
-			if (Event.current.type == EventType.Repaint)
+			if (Event.current != null && Event.current.type == EventType.Repaint)
 			{
 				strToolTipText = GUI.tooltip;
 			}

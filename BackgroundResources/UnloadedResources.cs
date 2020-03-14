@@ -99,6 +99,12 @@ namespace BackgroundResources
 
             if (FlightGlobals.fetch != null && !gamePaused)
             {
+                //***ENABLE THIS WHEN WE WANT THIS MOD TO GO STAND ALONE
+                /*
+                if (HighLogic.LoadedSceneIsGame && UnloadedResources.Instance.bgrSettings.backgroundresources)
+                {
+                    UpdateInterestedVessels();
+                }*/
                 //Generate EC
                 Dictionary<ProtoVessel, InterestedVessel>.Enumerator vslenumerator = InterestedVessels.GetDictEnumerator();
                 while (vslenumerator.MoveNext())
@@ -110,6 +116,25 @@ namespace BackgroundResources
                     }
                 }
                 vslenumerator.Dispose();
+            }
+        }
+
+        private void UpdateInterestedVessels()
+        {
+            List<Vessel> allVessels = FlightGlobals.Vessels;
+            for (int i = 0; i < allVessels.Count; i++)
+            {
+                if (allVessels[i].loaded)
+                {
+                    RemoveInterestedVessel(allVessels[i].protoVessel);
+                }
+                else if (!allVessels[i].loaded && !InterestedVessels.ContainsKey(allVessels[i].protoVessel))
+                {
+                    if (InterestedVessel.ContainsInterestedModules(allVessels[i].protoVessel))
+                    {
+                        AddInterestedVessel(allVessels[i].protoVessel);
+                    }
+                }
             }
         }
 

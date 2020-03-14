@@ -87,14 +87,30 @@ namespace BackgroundResources
                 sunAOA = 0f;
                 flowRate = 0f;
             }
-            Part part = PartLoader.getPartInfoByName(partsnapshot.partName).partPrefab;
+
+            AvailablePart avPart = PartLoader.getPartInfoByName(partsnapshot.partName);
+            Part part = null;
+            if (avPart != null)
+            {
+                part = avPart.partPrefab;
+            }
             if (part == null)
             {
                 Debug.Log("[UnloadedResources]: SolarPanel - Unable to Find Part: " + partsnapshot.partName);
                 return;
             }
+
+            if (part.Modules == null)
+            {
+                Debug.Log("[UnloadedResources]: SolarPanel -No defined Modules Part: " + partsnapshot.partName);
+                return;
+            }
             for (int i = 0; i < part.Modules.Count; ++i)
             {
+                if (part.Modules[i] == null)
+                {
+                    continue;
+                }
                 if (part.Modules[i].moduleName == "ModuleDeployableSolarPanel" || part.Modules[i].moduleName == "KopernicusSolarPanel")
                 {
                     ModuleDeployableSolarPanel panelModule = (ModuleDeployableSolarPanel) part.Modules[i];
