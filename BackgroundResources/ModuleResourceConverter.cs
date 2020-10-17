@@ -73,7 +73,7 @@ namespace BackgroundResources
                 {
                     BaseConverter converter = partsnapshot.partPrefab.Modules[i] as BaseConverter;
                     bool tacConverter = partsnapshot.partPrefab.Modules[i].ClassID == "Tac.TacGenericConverter".GetHashCode();
-                    if (converter != null && tacConverter)
+                    if (converter != null && (UnloadedResources.Instance.bgrSettings.IncludeGenericResourceConverters || tacConverter))
                     {
                         for (int j = 0; j < converter.outputList.Count; j++)
                         {

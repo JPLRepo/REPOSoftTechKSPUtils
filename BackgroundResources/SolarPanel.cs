@@ -114,8 +114,18 @@ namespace BackgroundResources
                 if (part.Modules[i].moduleName == "ModuleDeployableSolarPanel" || part.Modules[i].moduleName == "KopernicusSolarPanel")
                 {
                     ModuleDeployableSolarPanel panelModule = (ModuleDeployableSolarPanel) part.Modules[i];
-                    solarNormal = panelModule.part.FindModelTransform(panelModule.secondaryTransformName).forward;
-                    pivotAxis = panelModule.part.FindModelTransform(panelModule.pivotName).up;
+                    Transform solarTransform = panelModule.part.FindModelTransform(panelModule.secondaryTransformName);
+                    if (solarTransform == null)
+                        solarTransform = panelModule.part.transform;
+                    solarNormal = Vector3d.forward;
+                    if (solarTransform != null)
+                        solarNormal = solarTransform.forward;
+                    Transform pivotTransform = panelModule.part.FindModelTransform(panelModule.pivotName);
+                    if (pivotTransform == null)
+                        pivotTransform = panelModule.part.transform;
+                    pivotAxis = Vector3d.up;
+                    if (pivotTransform != null)
+                        pivotAxis = pivotTransform.up;
                     sunTracking = panelModule.isTracking && panelModule.trackingMode == ModuleDeployablePart.TrackingMode.SUN;
                     usesCurve = panelModule.useCurve;
                     tempCurve = panelModule.temperatureEfficCurve;
