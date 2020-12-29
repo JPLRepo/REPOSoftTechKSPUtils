@@ -139,7 +139,7 @@ namespace BackgroundResources
                     {
                         if (!ModuleHandlers.ContainsModule(modulesnapshot))
                         {
-                            if (modulesnapshot.moduleName == "ModuleDeployableSolarPanel" || modulesnapshot.moduleName == "KopernicusSolarPanel")
+                            if (modulesnapshot.moduleName == "ModuleDeployableSolarPanel" || modulesnapshot.moduleName == "KopernicusSolarPanelsFixer")
                             {
                                 ModuleHandlers.Add(new SolarPanel(modulesnapshot.moduleValues, this, modulesnapshot, partsnapshot));
                             }
