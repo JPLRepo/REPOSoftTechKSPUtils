@@ -68,11 +68,18 @@ namespace RSTUtils
             {
                 if ((toolbarAvailable != false) && (instance_ == null))
                 {
-                    Type type = ToolbarTypes.getType("Toolbar.ToolbarManager");
-                    if (type != null)
+                    try
                     {
-                        object realToolbarManager = ToolbarTypes.getStaticProperty(type, "Instance").GetValue(null, null);
-                        instance_ = new ToolbarManager(realToolbarManager);
+                        Type type = ToolbarTypes.getType("Toolbar.ToolbarManager");
+                        if (type != null)
+                        {
+                            object realToolbarManager = ToolbarTypes.getStaticProperty(type, "Instance").GetValue(null, null);
+                            instance_ = new ToolbarManager(realToolbarManager);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        return null;
                     }
                 }
                 return instance_;
