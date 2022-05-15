@@ -118,38 +118,44 @@ namespace BackgroundResources
                 double amtRequired = 0f;
                 double amtReceived = 0f;
                 bool inputsReceived = true;
-                for (int i = 0; i < inputResList.Count; i++)
+                if (inputResList != null)
                 {
-                    if (inputResList[i].ResourceName == "IntakeAir")
+                    for (int i = 0; i < inputResList.Count; i++)
                     {
-                        if (vessel.vessel.staticPressurekPa > 0d && vessel.vessel.mainBody.atmosphereContainsOxygen)
+                        if (inputResList[i].ResourceName == "IntakeAir")
                         {
-                            //Assume we have enough Air...
-                            continue;
-                        }
-                        else
-                        {
+                            if (vessel != null && vessel.vessel != null && vessel.vessel.staticPressurekPa > 0d && vessel.vessel.mainBody.atmosphereContainsOxygen)
+                            {
+                                //Assume we have enough Air...
+                                continue;
+                            }
                             //RSTUtils.Utilities.Log("TACGenericConverter: Failed to Get Air Resource Vessel " + vessel.vessel.vesselName);
                             inputsReceived = false;
                             break;
                         }
-                    }
-                    amtRequired = inputResList[i].Ratio * TimeWarp.fixedDeltaTime;
-                    UnloadedResourceProcessing.RequestResource(vessel.protovessel, inputResList[i].ResourceName, amtRequired, out amtReceived);
-                    //RSTUtils.Utilities.Log("TACGenericConverter: Requested Input Resource " + inputResList[i].ResourceName + " Amount:" + amtReceived);
-                    if (amtReceived < amtRequired)
-                    {
-                        //RSTUtils.Utilities.Log("TACGenericConverter: Failed to Get required Resource " + inputResList[i].ResourceName);
-                        inputsReceived = false;
-                        break;
+                        amtRequired = inputResList[i].Ratio * TimeWarp.fixedDeltaTime;
+                        if (vessel != null && vessel.protovessel != null)
+                        {
+                            UnloadedResourceProcessing.RequestResource(vessel.protovessel, inputResList[i].ResourceName, amtRequired, out amtReceived);
+                        }
+                        //RSTUtils.Utilities.Log("TACGenericConverter: Requested Input Resource " + inputResList[i].ResourceName + " Amount:" + amtReceived);
+                        if (amtReceived < amtRequired)
+                        {
+                            //RSTUtils.Utilities.Log("TACGenericConverter: Failed to Get required Resource " + inputResList[i].ResourceName);
+                            inputsReceived = false;
+                            break;
+                        }
                     }
                 }
-                if (inputsReceived)
+                if (inputsReceived && outputResList != null)
                 {
                     for (int i = 0; i < outputResList.Count; i++)
                     {
                         amtRequired = outputResList[i].Ratio * TimeWarp.fixedDeltaTime;
-                        UnloadedResourceProcessing.RequestResource(vessel.protovessel, outputResList[i].ResourceName, amtRequired, out amtReceived, true);
+                        if (vessel != null && vessel.protovessel != null)
+                        {
+                            UnloadedResourceProcessing.RequestResource(vessel.protovessel, outputResList[i].ResourceName, amtRequired, out amtReceived, true);
+                        }
                         //RSTUtils.Utilities.Log("TACGenericConverter: Generated Output Resource " + outputResList[i].ResourceName + " Amount:" + amtReceived);
                     }
                 }
